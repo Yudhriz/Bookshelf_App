@@ -36,37 +36,24 @@ jobs:
           git config --global user.name "[BOT] GitHub Actions"
           git config --global user.email "actions@github.com"
 
-          # Pastikan berada di branch main
-          git checkout main
+          # Buat branch baru untuk PR
+          git checkout -b deploy-update
           git pull origin main --rebase
 
           # Commit perubahan (commit kosong untuk update status)
           git commit --allow-empty -m "🚀 Deployed successfully to Vercel: $DEPLOY_URL"
 
-          # Push perubahan langsung ke main
-          git push origin main
+          # Push perubahan ke branch baru
+          git push origin deploy-update
 
-      - name: Check Existing Pull Requests
-        id: check_pr
+      - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_COUNT=$(gh pr list --base main --head deploy-update --json number --jq '. | length')
-          echo "EXISTING_PR_COUNT=$PR_COUNT" >> $GITHUB_ENV
-
-      - name: Create Pull Request (If None Exists)
-        if: env.EXISTING_PR_COUNT == '0'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          PR_URL=$(gh pr create \
+          # Membuat PR otomatis dari "deploy-update" ke "main"
+          gh pr create \
             --base main \
             --head deploy-update \
             --title "🚀 Deployment Update" \
-            --body "This PR confirms that the deployment to Vercel was successful. View the deployed app here: $DEPLOY_URL")
-
-          # Ambil nomor PR dari URL
-          PR_NUMBER=$(echo $PR_URL | grep -o '[0-9]\+$')
-
-          # Tambahkan label "deployment" jika PR berhasil dibuat
-          gh pr edit $PR_NUMBER --add-label "deployment"
+            --body "This PR confirms that the deployment to Vercel was successful. View the deployed app here: $DEPLOY_URL" \
+            --label "deployment"
