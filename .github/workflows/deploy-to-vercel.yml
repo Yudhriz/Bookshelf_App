@@ -36,22 +36,15 @@ jobs:
           git config --global user.name "[BOT] GitHub Actions"
           git config --global user.email "actions@github.com"
 
-          # Fetch semua branch agar dapat mendeteksi deploy-update
-          git fetch origin
-
-          # Jika branch deploy-update sudah ada di remote, checkout & pull
-          if git ls-remote --exit-code --heads origin deploy-update; then
-            git checkout -B deploy-update origin/deploy-update
-            git pull origin deploy-update --rebase
-          else
-            git checkout -b deploy-update
-          fi
+          # Pastikan berada di branch main
+          git checkout main
+          git pull origin main --rebase
 
           # Commit perubahan (commit kosong untuk update status)
           git commit --allow-empty -m "🚀 Deployed successfully to Vercel: $DEPLOY_URL"
 
-          # Push dengan --force agar selalu berhasil
-          git push origin deploy-update --force
+          # Push perubahan langsung ke main
+          git push origin main
 
       - name: Check Existing Pull Requests
         id: check_pr
