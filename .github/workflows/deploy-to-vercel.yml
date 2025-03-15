@@ -1,13 +1,13 @@
-name: Deploy to Vercel  # Nama workflow
+name: Deploy to Vercel # Nama workflow
 
 on:
   push:
     branches:
-      - main  # Workflow berjalan setiap ada push ke branch "main"
+      - main # Workflow berjalan setiap ada push ke branch "main"
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # Workflow dijalankan di lingkungan Ubuntu
+    runs-on: ubuntu-latest # Workflow dijalankan di lingkungan Ubuntu
 
     steps:
       - name: Checkout Repository
@@ -36,9 +36,12 @@ jobs:
           git config --global user.name "[BOT] GitHub Actions"
           git config --global user.email "actions@github.com"
 
-          # Cek apakah branch deploy-update sudah ada di remote
+          # Fetch semua branch agar dapat mendeteksi deploy-update
+          git fetch origin
+
+          # Jika branch deploy-update sudah ada di remote, checkout & pull
           if git ls-remote --exit-code --heads origin deploy-update; then
-            git checkout deploy-update
+            git checkout -B deploy-update origin/deploy-update
             git pull origin deploy-update --rebase
           else
             git checkout -b deploy-update
