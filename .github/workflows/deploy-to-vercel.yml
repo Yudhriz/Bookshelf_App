@@ -33,7 +33,7 @@ jobs:
       - name: Commit Deployment Status
         run: |
           # Konfigurasi Git agar bisa melakukan commit otomatis
-          git config --global user.name "GitHub Actions"
+          git config --global user.name "[BOT] GitHub Actions"
           git config --global user.email "actions@github.com"
 
           # Membuat branch baru untuk update deployment
@@ -42,7 +42,18 @@ jobs:
           git push origin deploy-update
         # Membuat commit kosong dengan pesan bahwa deploy berhasil
 
-      - name: Create Pull Request
+      - name: Check Existing Pull Requests
+        id: check_pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Cek apakah ada PR dari branch deploy-update ke main
+          PR_COUNT=$(gh pr list --base main --head deploy-update --json number --jq '. | length')
+          echo "EXISTING_PR_COUNT=$PR_COUNT" >> $GITHUB_ENV
+        # Menyimpan jumlah PR yang sudah ada untuk dicek nanti
+
+      - name: Create Pull Request (If None Exists)
+        if: env.EXISTING_PR_COUNT == '0'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
