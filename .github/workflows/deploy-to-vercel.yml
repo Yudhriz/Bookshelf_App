@@ -1,0 +1,56 @@
+name: Deploy to Vercel  # Nama workflow
+
+on:
+  push:
+    branches:
+      - main  # Workflow berjalan setiap ada push ke branch "main"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Workflow dijalankan di lingkungan Ubuntu
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        # Mengambil kode terbaru dari repository
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+        # Menginstal Vercel CLI untuk deployment
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        # Mengambil konfigurasi environment dari Vercel
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          # Melakukan deployment ke Vercel dan menyimpan URL hasil deploy
+          DEPLOY_URL=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "Deployment URL: $DEPLOY_URL"
+          echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
+
+      - name: Commit Deployment Status
+        run: |
+          # Konfigurasi Git agar bisa melakukan commit otomatis
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+          # Membuat branch baru untuk update deployment
+          git checkout -b deploy-update
+          git commit --allow-empty -m "🚀 Deployed successfully to Vercel: $DEPLOY_URL"
+          git push origin deploy-update
+        # Membuat commit kosong dengan pesan bahwa deploy berhasil
+
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Membuat Pull Request (PR) otomatis dari branch deploy-update ke main
+          gh pr create \
+            --base main \
+            --head deploy-update \
+            --title "🚀 Deployment Update" \
+            --body "This PR confirms that the deployment to Vercel was successful. View the deployed app here: $DEPLOY_URL" \
+            --label "deployment"
+        # PR ini akan menampilkan URL hasil deploy dan diberi label "deployment"
