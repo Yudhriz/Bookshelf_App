@@ -32,36 +32,45 @@ jobs:
 
       - name: Commit Deployment Status
         run: |
-          # Konfigurasi Git agar bisa melakukan commit otomatis
+          # Konfigurasi Git
           git config --global user.name "[BOT] GitHub Actions"
           git config --global user.email "actions@github.com"
 
-          # Membuat branch baru untuk update deployment
-          git checkout -b deploy-update
+          # Cek apakah branch deploy-update sudah ada di remote
+          if git ls-remote --exit-code --heads origin deploy-update; then
+            git checkout deploy-update
+            git pull origin deploy-update --rebase
+          else
+            git checkout -b deploy-update
+          fi
+
+          # Commit perubahan (commit kosong untuk update status)
           git commit --allow-empty -m "🚀 Deployed successfully to Vercel: $DEPLOY_URL"
-          git push origin deploy-update
-        # Membuat commit kosong dengan pesan bahwa deploy berhasil
+
+          # Push dengan --force agar selalu berhasil
+          git push origin deploy-update --force
 
       - name: Check Existing Pull Requests
         id: check_pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Cek apakah ada PR dari branch deploy-update ke main
           PR_COUNT=$(gh pr list --base main --head deploy-update --json number --jq '. | length')
           echo "EXISTING_PR_COUNT=$PR_COUNT" >> $GITHUB_ENV
-        # Menyimpan jumlah PR yang sudah ada untuk dicek nanti
 
       - name: Create Pull Request (If None Exists)
         if: env.EXISTING_PR_COUNT == '0'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Membuat Pull Request (PR) otomatis dari branch deploy-update ke main
-          gh pr create \
+          PR_URL=$(gh pr create \
             --base main \
             --head deploy-update \
             --title "🚀 Deployment Update" \
-            --body "This PR confirms that the deployment to Vercel was successful. View the deployed app here: $DEPLOY_URL" \
-            --label "deployment"
-        # PR ini akan menampilkan URL hasil deploy dan diberi label "deployment"
+            --body "This PR confirms that the deployment to Vercel was successful. View the deployed app here: $DEPLOY_URL")
+
+          # Ambil nomor PR dari URL
+          PR_NUMBER=$(echo $PR_URL | grep -o '[0-9]\+$')
+
+          # Tambahkan label "deployment" jika PR berhasil dibuat
+          gh pr edit $PR_NUMBER --add-label "deployment"
